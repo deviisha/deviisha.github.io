@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMF Style Lock</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif; /* CMF uses a clean sans-serif */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .status-text {
+            margin-bottom: 40px;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* Passcode Dot Indicators */
+        .dots-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 60px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .dot.active {
+            background-color: #fff; /* CMF white accent */
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
+        /* Number Pad Grid */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            max-width: 300px;
+        }
+
+        .key {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            background: #111;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .key:active {
+            background: #333;
+        }
+
+        .key.empty { background: transparent; cursor: default; }
+        
+        /* The "Delete" button style */
+        .key.action { font-size: 14px; color: #888; }
+
+        /* Error Shake Animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .shake { animation: shake 0.3s ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div class="status-text" id="prompt-text">Enter Passcode</div>
+
+    <div class="dots-container" id="dots-box">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+
+    <div class="numpad">
+        <button class="key" onclick="press(1)">1</button>
+        <button class="key" onclick="press(2)">2</button>
+        <button class="key" onclick="press(3)">3</button>
+        <button class="key" onclick="press(4)">4</button>
+        <button class="key" onclick="press(5)">5</button>
+        <button class="key" onclick="press(6)">6</button>
+        <button class="key" onclick="press(7)">7</button>
+        <button class="key" onclick="press(8)">8</button>
+        <button class="key" onclick="press(9)">9</button>
+        <div class="key empty"></div>
+        <button class="key" onclick="press(0)">0</button>
+        <button class="key action" onclick="del()">DEL</button>
+    </div>
+
+    <script>
+        const CORRECT_PIN = "1234";
+        let input = "";
+        const dots = document.querySelectorAll('.dot');
+        const prompt = document.getElementById('prompt-text');
+        const dotsBox = document.getElementById('dots-box');
+
+        function press(num) {
+            if (input.length < 4) {
+                input += num;
+                updateDots();
+                
+                if (input.length === 4) {
+                    setTimeout(checkPin, 200);
+                }
+            }
+        }
+
+        function del() {
+            input = input.slice(0, -1);
+            updateDots();
+        }
+
+        function updateDots() {
+            dots.forEach((dot, index) => {
+                if (index < input.length) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        function checkPin() {
+            if (input === CORRECT_PIN) {
+                prompt.innerText = "ACCESS GRANTED";
+                prompt.style.color = "#4CAF50";
+                // Add your redirect or unlock logic here
+            } else {
+                // Shake and Reset
+                dotsBox.classList.add('shake');
+                prompt.innerText = "WRONG PASSCODE";
+                prompt.style.color = "#FF5252";
+                
+                setTimeout(() => {
+                    input = "";
+                    updateDots();
+                    dotsBox.classList.remove('shake');
+                    prompt.innerText = "Enter Passcode";
+                    prompt.style.color = "#888";
+                }, 600);
+            }
+        }
+    </script>
+</body>
+</html>

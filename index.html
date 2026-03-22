@@ -2,13 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMF Style Lock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CMF Passcode Pro</title>
+    <!-- Importing a Dot-Matrix style font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
+        :root {
+            --nothing-white: #ffffff;
+            --nothing-grey: #1a1a1a;
+            --nothing-red: #ff3131;
+            --nothing-bg: #000000;
+        }
+
         body {
-            background-color: #000;
-            color: #fff;
-            font-family: 'Inter', sans-serif; /* CMF uses a clean sans-serif */
+            background-color: var(--nothing-bg);
+            color: var(--nothing-white);
+            font-family: 'Inter', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -16,84 +26,96 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            user-select: none;
         }
 
-        .status-text {
-            margin-bottom: 40px;
-            font-size: 14px;
-            letter-spacing: 1px;
-            color: #888;
-            text-transform: uppercase;
+        /* Top Status Text */
+        .header-text {
+            font-family: 'Major Mono Display', monospace; /* Dot matrix feel */
+            font-size: 1.2rem;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+            text-align: center;
+            transition: color 0.3s ease;
         }
 
-        /* Passcode Dot Indicators */
-        .dots-container {
+        /* Passcode Dots */
+        .dots-wrapper {
             display: flex;
-            gap: 20px;
-            margin-bottom: 60px;
+            gap: 25px;
+            margin-bottom: 80px;
         }
 
         .dot {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border: 2px solid #333;
             border-radius: 50%;
-            transition: background-color 0.2s, transform 0.2s;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .dot.active {
-            background-color: #fff; /* CMF white accent */
-            border-color: #fff;
-            transform: scale(1.1);
+        .dot.filled {
+            background-color: var(--nothing-white);
+            border-color: var(--nothing-white);
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
-        /* Number Pad Grid */
+        /* Numpad Grid */
         .numpad {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
-            max-width: 300px;
+            grid-template-columns: repeat(3, 85px);
+            gap: 20px;
+            justify-content: center;
         }
 
-        .key {
-            width: 70px;
-            height: 70px;
+        .btn {
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             border: none;
-            background: #111;
+            background: var(--nothing-grey);
             color: white;
             font-size: 24px;
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.1s;
-            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.1s, background 0.2s;
+            outline: none;
         }
 
-        .key:active {
-            background: #333;
+        .btn:active {
+            background: #444;
+            transform: scale(0.92);
         }
 
-        .key.empty { background: transparent; cursor: default; }
-        
-        /* The "Delete" button style */
-        .key.action { font-size: 14px; color: #888; }
+        .btn-empty { background: transparent; cursor: default; }
+        .btn-del { 
+            font-size: 12px; 
+            letter-spacing: 1px; 
+            color: #888; 
+            text-transform: uppercase;
+        }
 
         /* Error Shake Animation */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
         }
-        .shake { animation: shake 0.3s ease-in-out; }
+        .error-shake { animation: shake 0.4s ease-in-out; }
+
     </style>
 </head>
 <body>
 
-    <div class="status-text" id="prompt-text">Enter Passcode</div>
+    <div class="header-text" id="status">ENTER PIN</div>
 
-    <div class="dots-container" id="dots-box">
+    <div class="dots-wrapper" id="dots-container">
         <div class="dot"></div>
         <div class="dot"></div>
         <div class="dot"></div>
@@ -101,70 +123,72 @@
     </div>
 
     <div class="numpad">
-        <button class="key" onclick="press(1)">1</button>
-        <button class="key" onclick="press(2)">2</button>
-        <button class="key" onclick="press(3)">3</button>
-        <button class="key" onclick="press(4)">4</button>
-        <button class="key" onclick="press(5)">5</button>
-        <button class="key" onclick="press(6)">6</button>
-        <button class="key" onclick="press(7)">7</button>
-        <button class="key" onclick="press(8)">8</button>
-        <button class="key" onclick="press(9)">9</button>
-        <div class="key empty"></div>
-        <button class="key" onclick="press(0)">0</button>
-        <button class="key action" onclick="del()">DEL</button>
+        <button class="btn" onclick="addNumber('1')">1</button>
+        <button class="btn" onclick="addNumber('2')">2</button>
+        <button class="btn" onclick="addNumber('3')">3</button>
+        <button class="btn" onclick="addNumber('4')">4</button>
+        <button class="btn" onclick="addNumber('5')">5</button>
+        <button class="btn" onclick="addNumber('6')">6</button>
+        <button class="btn" onclick="addNumber('7')">7</button>
+        <button class="btn" onclick="addNumber('8')">8</button>
+        <button class="btn" onclick="addNumber('9')">9</button>
+        <div class="btn-empty"></div>
+        <button class="btn" onclick="addNumber('0')">0</button>
+        <button class="btn btn-del" onclick="backspace()">DEL</button>
     </div>
 
     <script>
-        const CORRECT_PIN = "1234";
-        let input = "";
-        const dots = document.querySelectorAll('.dot');
-        const prompt = document.getElementById('prompt-text');
-        const dotsBox = document.getElementById('dots-box');
+        const PIN_REQUIRED = "1997"; // Set your 4-digit pin here
+        let currentInput = "";
+        
+        const statusEl = document.getElementById('status');
+        const dotEls = document.querySelectorAll('.dot');
+        const containerEl = document.getElementById('dots-container');
 
-        function press(num) {
-            if (input.length < 4) {
-                input += num;
-                updateDots();
+        function addNumber(num) {
+            if (currentInput.length < 4) {
+                currentInput += num;
+                render();
                 
-                if (input.length === 4) {
-                    setTimeout(checkPin, 200);
+                if (currentInput.length === 4) {
+                    // Small delay so the user sees the last dot fill
+                    setTimeout(validate, 250);
                 }
             }
         }
 
-        function del() {
-            input = input.slice(0, -1);
-            updateDots();
+        function backspace() {
+            currentInput = currentInput.slice(0, -1);
+            render();
         }
 
-        function updateDots() {
-            dots.forEach((dot, index) => {
-                if (index < input.length) {
-                    dot.classList.add('active');
+        function render() {
+            dotEls.forEach((dot, i) => {
+                if (i < currentInput.length) {
+                    dot.classList.add('filled');
                 } else {
-                    dot.classList.remove('active');
+                    dot.classList.remove('filled');
                 }
             });
         }
 
-        function checkPin() {
-            if (input === CORRECT_PIN) {
-                prompt.innerText = "ACCESS GRANTED";
-                prompt.style.color = "#4CAF50";
-                // Add your redirect or unlock logic here
+        function validate() {
+            if (currentInput === PIN_REQUIRED) {
+                statusEl.innerText = "UNLOCKED";
+                statusEl.style.color = "#4CAF50";
+                // Add success action here (e.g., window.location.href = 'home.html')
             } else {
-                // Shake and Reset
-                dotsBox.classList.add('shake');
-                prompt.innerText = "WRONG PASSCODE";
-                prompt.style.color = "#FF5252";
-                
+                // Fail state
+                containerEl.classList.add('error-shake');
+                statusEl.innerText = "TRY AGAIN";
+                statusEl.style.color = "var(--nothing-red)";
+
                 setTimeout(() => {
-                    input = "";
-                    updateDots();
-                    dotsBox.classList.remove('shake');
-                    prompt.innerText = "Enter Passcode";
-                    prompt.style.color = "#888";
+                    currentInput = "";
+                    render();
+                    containerEl.classList.remove('error-shake');
+                    statusEl.innerText = "ENTER PIN";
+                    statusEl.style.color = "white";
                 }, 600);
             }
         }

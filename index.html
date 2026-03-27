@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CMF OS Pro</title>
+    <title>CMF Passcode Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
@@ -12,12 +12,11 @@
             --nothing-grey: #1a1a1a;
             --nothing-red: #ff3131;
             --nothing-bg: #000000;
-            --cmf-orange: #ff5e00; /* Signature CMF Accent */
+            --cmf-orange: #ff5e00;
         }
 
         * {
             box-sizing: border-box;
-            /* FIX: Removes the blue highlight on mobile tap */
             -webkit-tap-highlight-color: transparent;
             outline: none;
         }
@@ -33,21 +32,18 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            user-select: none;
             transition: background 0.5s ease;
         }
 
-        /* Status Text */
         .header-text {
             font-family: 'Major Mono Display', monospace;
-            font-size: 1.1rem;
+            font-size: 1rem;
             margin-bottom: 40px;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             text-align: center;
-            transition: all 0.3s ease;
+            min-height: 1.5em;
         }
 
-        /* Passcode Dots */
         .dots-wrapper {
             display: flex;
             gap: 20px;
@@ -66,15 +62,12 @@
             background-color: var(--nothing-white);
             border-color: var(--nothing-white);
             transform: scale(1.3);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
         }
 
-        /* Numpad */
         .numpad {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, 80px);
             gap: 20px;
-            max-width: 300px;
         }
 
         .btn {
@@ -85,69 +78,55 @@
             background: var(--nothing-grey);
             color: white;
             font-size: 24px;
-            font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.1s, background 0.2s;
-            touch-action: manipulation; /* Fixes double-tap zoom delay */
+            touch-action: manipulation;
         }
 
-        /* Button Active State - Subtle scale and CMF Orange Glow */
         .btn:active {
             background: #333;
             transform: scale(0.9);
-            box-shadow: 0 0 20px rgba(255, 94, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 94, 0, 0.2);
         }
 
-        .btn-empty { visibility: hidden; }
-        
         .btn-del { 
             font-size: 11px; 
-            letter-spacing: 1px; 
             color: #666; 
-            text-transform: uppercase;
             background: transparent;
         }
 
-        /* Success/Failure States */
+        .btn-empty { visibility: hidden; }
+
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
         }
         .error-shake { animation: shake 0.3s ease-in-out; }
 
-        /* Hidden Home State */
         #home-screen {
             display: none;
-            flex-direction: column;
-            align-items: center;
             opacity: 0;
-            transition: opacity 1s ease;
-        }
-
-        .widget {
-            background: var(--nothing-grey);
-            padding: 30px;
-            border-radius: 28px;
-            width: 280px;
             text-align: center;
-            border: 1px solid #222;
+            transition: opacity 0.5s ease;
         }
 
-        .widget h1 {
-            font-family: 'Major Mono Display', monospace;
-            color: var(--cmf-orange);
-            margin: 0;
+        .reset-link {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #444;
+            text-decoration: underline;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
     <div id="lock-screen">
-        <div class="header-text" id="status">ENTER PIN</div>
+        <div class="header-text" id="status">INITIALIZING...</div>
 
         <div class="dots-wrapper" id="dots-container">
             <div class="dot"></div>
@@ -170,38 +149,107 @@
             <button class="btn" onclick="addNumber('0')">0</button>
             <button class="btn btn-del" onclick="backspace()">DEL</button>
         </div>
+
+        <center><div class="reset-link" onclick="resetSystem()">RESET SYSTEM</div></center>
     </div>
 
     <div id="home-screen">
-        <div class="widget">
-            <p style="font-size: 10px; color: #888; margin-bottom: 5px;">CMF OS v2.0</p>
-            <h1>19:97</h1>
-            <p style="font-size: 12px; margin-top: 20px;">SYSTEM UNLOCKED</p>
-        </div>
+        <h1 style="font-family: 'Major Mono Display'; color: var(--cmf-orange);">UNLOCKED</h1>
+        <p>Welcome to CMF OS</p>
+        <button class="btn" style="margin: 20px auto;" onclick="location.reload()">LOCK</button>
     </div>
 
     <script>
-        const PIN_REQUIRED = "1997";
         let currentInput = "";
+        let step = "CHECK"; // States: CHECK, SET, CONFIRM
+        let tempPin = "";
         
         const statusEl = document.getElementById('status');
         const dotEls = document.querySelectorAll('.dot');
         const containerEl = document.getElementById('dots-container');
-        const lockScreen = document.getElementById('lock-screen');
-        const homeScreen = document.getElementById('home-screen');
+
+        // On Load: Check if a PIN already exists in memory
+        window.onload = () => {
+            const savedPin = localStorage.getItem('cmf_pin');
+            if (!savedPin) {
+                step = "SET";
+                statusEl.innerText = "CREATE NEW PIN";
+            } else {
+                step = "CHECK";
+                statusEl.innerText = "ENTER PIN";
+            }
+        };
 
         function addNumber(num) {
             if (currentInput.length < 4) {
-                // Haptic feedback (Android/Mobile only)
-                if (window.navigator.vibrate) window.navigator.vibrate(15);
-                
+                if (window.navigator.vibrate) window.navigator.vibrate(10);
                 currentInput += num;
                 render();
-                
-                if (currentInput.length === 4) {
-                    setTimeout(validate, 300);
+                if (currentInput.length === 4) setTimeout(processInput, 300);
+            }
+        }
+
+        function render() {
+            dotEls.forEach((dot, i) => dot.classList.toggle('filled', i < currentInput.length));
+        }
+
+        function processInput() {
+            const savedPin = localStorage.getItem('cmf_pin');
+
+            if (step === "SET") {
+                // First step of saving a new PIN
+                tempPin = currentInput;
+                currentInput = "";
+                render();
+                step = "CONFIRM";
+                statusEl.innerText = "CONFIRM PIN";
+                statusEl.style.color = var(--cmf-orange);
+            } 
+            else if (step === "CONFIRM") {
+                // Confirming the new PIN
+                if (currentInput === tempPin) {
+                    localStorage.setItem('cmf_pin', currentInput);
+                    statusEl.innerText = "PIN SAVED";
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    errorEffect("MISMATCH");
+                    step = "SET";
+                    setTimeout(() => statusEl.innerText = "CREATE NEW PIN", 800);
+                }
+            } 
+            else if (step === "CHECK") {
+                // Standard unlock check
+                if (currentInput === savedPin) {
+                    unlock();
+                } else {
+                    errorEffect("WRONG PIN");
                 }
             }
+        }
+
+        function errorEffect(msg) {
+            containerEl.classList.add('error-shake');
+            statusEl.innerText = msg;
+            statusEl.style.color = "var(--nothing-red)";
+            if (window.navigator.vibrate) window.navigator.vibrate([50, 50, 50]);
+            
+            setTimeout(() => {
+                currentInput = "";
+                render();
+                containerEl.classList.remove('error-shake');
+                statusEl.innerText = (step === "CHECK") ? "ENTER PIN" : "CREATE PIN";
+                statusEl.style.color = "white";
+            }, 800);
+        }
+
+        function unlock() {
+            statusEl.innerText = "ACCESS GRANTED";
+            statusEl.style.color = "#4CAF50";
+            setTimeout(() => {
+                document.getElementById('lock-screen').style.display = "none";
+                document.getElementById('home-screen').style.display = "block";
+                setTimeout(() => document.getElementById('home-screen').style.opacity = "1", 50);
+            }, 500);
         }
 
         function backspace() {
@@ -209,48 +257,10 @@
             render();
         }
 
-        function render() {
-            dotEls.forEach((dot, i) => {
-                if (i < currentInput.length) {
-                    dot.classList.add('filled');
-                } else {
-                    dot.classList.remove('filled');
-                }
-            });
-        }
-
-        function validate() {
-            if (currentInput === PIN_REQUIRED) {
-                // Success logic
-                statusEl.innerText = "SUCCESS";
-                statusEl.style.color = "var(--cmf-orange)";
-                
-                setTimeout(() => {
-                    lockScreen.style.transition = "opacity 0.6s ease, transform 0.6s ease";
-                    lockScreen.style.opacity = "0";
-                    lockScreen.style.transform = "scale(0.9)";
-                    
-                    setTimeout(() => {
-                        lockScreen.style.display = "none";
-                        homeScreen.style.display = "flex";
-                        setTimeout(() => homeScreen.style.opacity = "1", 50);
-                    }, 600);
-                }, 400);
-
-            } else {
-                // Failure logic
-                if (window.navigator.vibrate) window.navigator.vibrate([40, 40, 40]);
-                containerEl.classList.add('error-shake');
-                statusEl.innerText = "WRONG PIN";
-                statusEl.style.color = "var(--nothing-red)";
-
-                setTimeout(() => {
-                    currentInput = "";
-                    render();
-                    containerEl.classList.remove('error-shake');
-                    statusEl.innerText = "ENTER PIN";
-                    statusEl.style.color = "white";
-                }, 800);
+        function resetSystem() {
+            if(confirm("Delete saved PIN and restart?")) {
+                localStorage.removeItem('cmf_pin');
+                location.reload();
             }
         }
     </script>

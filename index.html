@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CMF Passcode Pro</title>
-    <!-- Importing a Dot-Matrix style font from Google Fonts -->
+    <title>CMF OS Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
@@ -13,6 +12,14 @@
             --nothing-grey: #1a1a1a;
             --nothing-red: #ff3131;
             --nothing-bg: #000000;
+            --cmf-orange: #ff5e00; /* Signature CMF Accent */
+        }
+
+        * {
+            box-sizing: border-box;
+            /* FIX: Removes the blue highlight on mobile tap */
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
 
         body {
@@ -27,28 +34,29 @@
             margin: 0;
             overflow: hidden;
             user-select: none;
+            transition: background 0.5s ease;
         }
 
-        /* Top Status Text */
+        /* Status Text */
         .header-text {
-            font-family: 'Major Mono Display', monospace; /* Dot matrix feel */
-            font-size: 1.2rem;
-            margin-bottom: 50px;
-            letter-spacing: 2px;
+            font-family: 'Major Mono Display', monospace;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            letter-spacing: 3px;
             text-align: center;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         /* Passcode Dots */
         .dots-wrapper {
             display: flex;
-            gap: 25px;
-            margin-bottom: 80px;
+            gap: 20px;
+            margin-bottom: 60px;
         }
 
         .dot {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border: 2px solid #333;
             border-radius: 50%;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -57,102 +65,141 @@
         .dot.filled {
             background-color: var(--nothing-white);
             border-color: var(--nothing-white);
-            transform: scale(1.2);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            transform: scale(1.3);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
         }
 
-        /* Numpad Grid */
+        /* Numpad */
         .numpad {
             display: grid;
-            grid-template-columns: repeat(3, 85px);
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
-            justify-content: center;
+            max-width: 300px;
         }
 
         .btn {
-            width: 80px;
-            height: 80px;
+            width: 75px;
+            height: 75px;
             border-radius: 50%;
             border: none;
             background: var(--nothing-grey);
             color: white;
             font-size: 24px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.1s, background 0.2s;
-            outline: none;
+            touch-action: manipulation; /* Fixes double-tap zoom delay */
         }
 
+        /* Button Active State - Subtle scale and CMF Orange Glow */
         .btn:active {
-            background: #444;
-            transform: scale(0.92);
+            background: #333;
+            transform: scale(0.9);
+            box-shadow: 0 0 20px rgba(255, 94, 0, 0.3);
         }
 
-        .btn-empty { background: transparent; cursor: default; }
+        .btn-empty { visibility: hidden; }
+        
         .btn-del { 
-            font-size: 12px; 
+            font-size: 11px; 
             letter-spacing: 1px; 
-            color: #888; 
+            color: #666; 
             text-transform: uppercase;
+            background: transparent;
         }
 
-        /* Error Shake Animation */
+        /* Success/Failure States */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-8px); }
-            40% { transform: translateX(8px); }
-            60% { transform: translateX(-8px); }
-            80% { transform: translateX(8px); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
-        .error-shake { animation: shake 0.4s ease-in-out; }
+        .error-shake { animation: shake 0.3s ease-in-out; }
 
+        /* Hidden Home State */
+        #home-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .widget {
+            background: var(--nothing-grey);
+            padding: 30px;
+            border-radius: 28px;
+            width: 280px;
+            text-align: center;
+            border: 1px solid #222;
+        }
+
+        .widget h1 {
+            font-family: 'Major Mono Display', monospace;
+            color: var(--cmf-orange);
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 
-    <div class="header-text" id="status">ENTER PIN</div>
+    <div id="lock-screen">
+        <div class="header-text" id="status">ENTER PIN</div>
 
-    <div class="dots-wrapper" id="dots-container">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+        <div class="dots-wrapper" id="dots-container">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+        <div class="numpad">
+            <button class="btn" onclick="addNumber('1')">1</button>
+            <button class="btn" onclick="addNumber('2')">2</button>
+            <button class="btn" onclick="addNumber('3')">3</button>
+            <button class="btn" onclick="addNumber('4')">4</button>
+            <button class="btn" onclick="addNumber('5')">5</button>
+            <button class="btn" onclick="addNumber('6')">6</button>
+            <button class="btn" onclick="addNumber('7')">7</button>
+            <button class="btn" onclick="addNumber('8')">8</button>
+            <button class="btn" onclick="addNumber('9')">9</button>
+            <div class="btn-empty"></div>
+            <button class="btn" onclick="addNumber('0')">0</button>
+            <button class="btn btn-del" onclick="backspace()">DEL</button>
+        </div>
     </div>
 
-    <div class="numpad">
-        <button class="btn" onclick="addNumber('1')">1</button>
-        <button class="btn" onclick="addNumber('2')">2</button>
-        <button class="btn" onclick="addNumber('3')">3</button>
-        <button class="btn" onclick="addNumber('4')">4</button>
-        <button class="btn" onclick="addNumber('5')">5</button>
-        <button class="btn" onclick="addNumber('6')">6</button>
-        <button class="btn" onclick="addNumber('7')">7</button>
-        <button class="btn" onclick="addNumber('8')">8</button>
-        <button class="btn" onclick="addNumber('9')">9</button>
-        <div class="btn-empty"></div>
-        <button class="btn" onclick="addNumber('0')">0</button>
-        <button class="btn btn-del" onclick="backspace()">DEL</button>
+    <div id="home-screen">
+        <div class="widget">
+            <p style="font-size: 10px; color: #888; margin-bottom: 5px;">CMF OS v2.0</p>
+            <h1>19:97</h1>
+            <p style="font-size: 12px; margin-top: 20px;">SYSTEM UNLOCKED</p>
+        </div>
     </div>
 
     <script>
-        const PIN_REQUIRED = "1997"; // Set your 4-digit pin here
+        const PIN_REQUIRED = "1997";
         let currentInput = "";
         
         const statusEl = document.getElementById('status');
         const dotEls = document.querySelectorAll('.dot');
         const containerEl = document.getElementById('dots-container');
+        const lockScreen = document.getElementById('lock-screen');
+        const homeScreen = document.getElementById('home-screen');
 
         function addNumber(num) {
             if (currentInput.length < 4) {
+                // Haptic feedback (Android/Mobile only)
+                if (window.navigator.vibrate) window.navigator.vibrate(15);
+                
                 currentInput += num;
                 render();
                 
                 if (currentInput.length === 4) {
-                    // Small delay so the user sees the last dot fill
-                    setTimeout(validate, 250);
+                    setTimeout(validate, 300);
                 }
             }
         }
@@ -174,13 +221,27 @@
 
         function validate() {
             if (currentInput === PIN_REQUIRED) {
-                statusEl.innerText = "UNLOCKED";
-                statusEl.style.color = "#4CAF50";
-                // Add success action here (e.g., window.location.href = 'home.html')
+                // Success logic
+                statusEl.innerText = "SUCCESS";
+                statusEl.style.color = "var(--cmf-orange)";
+                
+                setTimeout(() => {
+                    lockScreen.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+                    lockScreen.style.opacity = "0";
+                    lockScreen.style.transform = "scale(0.9)";
+                    
+                    setTimeout(() => {
+                        lockScreen.style.display = "none";
+                        homeScreen.style.display = "flex";
+                        setTimeout(() => homeScreen.style.opacity = "1", 50);
+                    }, 600);
+                }, 400);
+
             } else {
-                // Fail state
+                // Failure logic
+                if (window.navigator.vibrate) window.navigator.vibrate([40, 40, 40]);
                 containerEl.classList.add('error-shake');
-                statusEl.innerText = "TRY AGAIN";
+                statusEl.innerText = "WRONG PIN";
                 statusEl.style.color = "var(--nothing-red)";
 
                 setTimeout(() => {
@@ -189,7 +250,7 @@
                     containerEl.classList.remove('error-shake');
                     statusEl.innerText = "ENTER PIN";
                     statusEl.style.color = "white";
-                }, 600);
+                }, 800);
             }
         }
     </script>
